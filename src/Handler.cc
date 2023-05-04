@@ -35,8 +35,22 @@ void Handler::init() {
     event_del(write_event);
 }
 
-void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {}
-void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {}
+void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
+    // 读取为0关闭连接，直接释放资源
+    Handler* handler = (Handler*)arg;
+    size_t bytes = 0;
+    bytes = recv(fd, handler->read_buff, Handler::READ_BUFF_LEN, 0);
+}
+
+void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {
+    // 写出错，关闭连接，直接释放资源
+    Handler* handler = (Handler*)arg;
+    size_t bytes = 0;
+    bytes = send(fd, handler->write_buff, Handler::WRITE_BUFF_LEN, 0);
+}
+
+void Handler::event_cb(struct bufferevent* bev, short what, void* ctx) {}
+
 void Handler::func_cb(evutil_socket_t fd, short what, void* arg) {
     // 读取 fd 中的内容到 buffer
     if (what & EV_READ) {
