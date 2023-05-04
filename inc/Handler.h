@@ -12,8 +12,8 @@ public:
     void set_fd(int fd);
     void init();
 private:
-    static void read_cb(struct bufferevent* bev, void* ctx);
-    static void write_cb(struct bufferevent* bev, void* ctx);
+    static void read_cb(evutil_socket_t fd, short what, void* arg);
+    static void write_cb(evutil_socket_t fd, short what, void* arg);
     static void event_cb(struct bufferevent* bev, short what, void* ctx);
     static void func_cb(evutil_socket_t fd, short what, void* arg);
 
