@@ -19,11 +19,13 @@ private:
 
     static const int READ_BUFF_LEN = 1024;
     static const int WRITE_BUFF_LEN = 1024;
-    
+
 private:
     /* data */
     int fd;
     event_base* base;
+    event* read_event;
+    event* write_event;
     char read_buff[Handler::READ_BUFF_LEN];
     char write_buff[Handler::WRITE_BUFF_LEN];
 };
