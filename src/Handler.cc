@@ -2,9 +2,15 @@
 
 
 Handler::Handler() {
-    read_event = NULL;
-    write_event = NULL;
+    this->read_event = NULL;
+    this->write_event = NULL;
+    this->read_buff_index = 0;
+    this->read_buff_size = 0;
+    this->write_buff_index = 0;
+    this->write_buff_size = 0;
+    this->working = true;
 }
+
 Handler::~Handler() {
     if (read_event != NULL) {
         event_free(read_event);
@@ -30,23 +36,69 @@ void Handler::init() {
     // 添加事件
     event_add(read_event, NULL);
     event_add(write_event, NULL);
+    // 手动激活事件
+    event_active(write_event, EV_WRITE, 0);
+}
+
+void Handler::destory() {
     // 删除事件
     event_del(read_event);
     event_del(write_event);
 }
 
+bool Handler::get_state() {
+    return this->working;
+}
+
+void Handler::set_write_buff(char* buff) {
+    this->write_buff = buff;
+}
+
+
 void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
     // 读取为0关闭连接，直接释放资源
     Handler* handler = (Handler*)arg;
+    char* buff = handler->read_buff;
+    int index = handler->read_buff_index;
     size_t bytes = 0;
-    bytes = recv(fd, handler->read_buff, Handler::READ_BUFF_LEN, 0);
+    bytes = recv(fd, buff + index, Handler::READ_BUFF_LEN - index, 0);
+    if (-1 == bytes) {
+        // 缓冲区数据读取完毕
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+            return;
+        }
+        handler->destory();
+        handler->working = false;
+    }
+    // 客户端关闭了连接
+    if (0 == bytes) {
+        handler->destory();
+        handler->working = false;
+    }
+    handler->read_buff_index += bytes;
+    // 请求读取完在处理
+    if(handler->read_buff_index == 1024){
+        
+    }
 }
 
 void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {
     // 写出错，关闭连接，直接释放资源
     Handler* handler = (Handler*)arg;
+    char* buff = handler->write_buff;
+    int buff_index = handler->write_buff_index;
+    int buff_size = handler->write_buff_size;
     size_t bytes = 0;
-    bytes = send(fd, handler->write_buff, Handler::WRITE_BUFF_LEN, 0);
+    bytes = send(fd, buff + buff_index, buff_size - buff_index, 0);
+    if (-1 == bytes) {
+        // 写缓冲区已满
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+            return;
+        }
+        handler->destory();
+        handler->working = false;
+    }
+    handler->write_buff_index += bytes;
 }
 
 void Handler::event_cb(struct bufferevent* bev, short what, void* ctx) {}

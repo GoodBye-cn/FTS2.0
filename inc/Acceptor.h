@@ -4,14 +4,14 @@
 #include <event2/listener.h>
 
 class Acceptor {
-private:
-    /* data */
 public:
     Acceptor(/* args */);
     ~Acceptor();
     void accept_conn(struct evconnlistener* listener,
         evutil_socket_t fd, struct sockaddr* address, int socklen,
         void* ctx);
+private:
+    /* data */
 };
 
 

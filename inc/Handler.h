@@ -11,6 +11,10 @@ public:
     void set_base(event_base* base);
     void set_fd(int fd);
     void init();
+    void destory();
+    bool get_state();
+    void set_write_buff(char* buff);
+
 private:
     static void read_cb(evutil_socket_t fd, short what, void* arg);
     static void write_cb(evutil_socket_t fd, short what, void* arg);
@@ -27,7 +31,10 @@ private:
     event* read_event;
     event* write_event;
     char read_buff[Handler::READ_BUFF_LEN];
-    char write_buff[Handler::WRITE_BUFF_LEN];
+    char* write_buff;
+    int read_buff_index, read_buff_size;
+    int write_buff_index, write_buff_size;
+    bool working;
 };
 
 #endif
