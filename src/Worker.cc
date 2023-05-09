@@ -11,10 +11,6 @@ void Worker::set_buff(char* buff, int buffer_size) {
     this->buffer_size = buffer_size;
 }
 
-Worker::Status Worker::get_status() {
-    return this->status;
-}
-
 void Worker::set_handler(Handler* handler) {
     this->handler = handler;
 }

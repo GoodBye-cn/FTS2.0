@@ -34,13 +34,28 @@ void Reactor::start() {
 }
 
 void Reactor::add_handler(Handler* handler) {
-
+    handlers.insert(handler);
 }
 
+void Reactor::remove_handler() {
+    if (remove_list.size() == 0) {
+        return;
+    }
+    for (int i = 0; i < remove_list.size(); i++) {
+        handlers.erase(remove_list[i]);
+    }
+
+    remove_list.clear();
+}
 
 void Reactor::remove_handler(Handler* handler) {
-    
+    handlers.erase(handler);
 }
+
+void Reactor::add_remove_list(Handler* handler) {
+    remove_list.push_back(handler);
+}
+
 
 void Reactor::sigquit_cb(evutil_socket_t sig, short what, void* ctx) {
     printf("SIGQUIT\n");

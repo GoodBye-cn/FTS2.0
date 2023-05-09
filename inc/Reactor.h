@@ -4,7 +4,8 @@
 #include <event2/listener.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <unordered_map>
+#include <set>
+#include <vector>
 
 #include <string.h>
 
@@ -12,14 +13,15 @@ class Handler;
 class Acceptor;
 
 class Reactor {
-
 public:
     Reactor();
     ~Reactor();
 
     void add_handler(Handler* handler);
+    void remove_handler();
     void remove_handler(Handler* handler);
     void start();
+    void add_remove_list(Handler* handler);
 
 private:
     static void sigquit_cb(evutil_socket_t sig, short what, void* ctx);
@@ -34,8 +36,8 @@ private:
     event_base* base;
     evconnlistener* listener;
     event* sigquit_event;
-
-    std::unordered_map<Handler*, bool> handlers;
+    std::vector<Handler*> remove_list;
+    std::set<Handler*> handlers;
     Acceptor* acceptor;
 };
 

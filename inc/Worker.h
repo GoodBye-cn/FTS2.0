@@ -21,16 +21,11 @@ public:
 
     void set_buff(char* buff, int buffer_size);
     void set_handler(Handler* handler);
-    Status get_status();
-
     void work();
 
 private:
     char* buffer;
     int buffer_size;
-    Status status;
-
-    char* path;
     struct stat file_stat;
     Handler* handler;
     Request resq;

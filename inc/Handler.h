@@ -5,6 +5,7 @@
 
 #include "Worker.h"
 
+class Reactor;
 class Handler {
 public:
     Handler();
@@ -12,6 +13,7 @@ public:
 
     void set_base(event_base* base);
     void set_sockfd(int fd);
+    void set_reactor(Reactor* reactor);
     void init();
     void destory();
     bool get_state();
@@ -43,6 +45,7 @@ private:
     bool working;
 
     Worker* worker;
+    Reactor* reactor;
 };
 
 #endif

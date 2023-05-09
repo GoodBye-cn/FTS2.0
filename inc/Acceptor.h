@@ -11,7 +11,6 @@ public:
         evutil_socket_t fd, struct sockaddr* address, int socklen,
         void* ctx);
 private:
-    /* data */
 };
 
 

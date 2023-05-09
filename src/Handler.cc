@@ -1,4 +1,5 @@
 #include "Handler.h"
+#include "Reactor.h"
 #include <cstring>
 #include <sys/sendfile.h>
 
@@ -24,6 +25,10 @@ Handler::~Handler() {
         event_free(write_event);
         write_event = NULL;
     }
+
+    if (worker != NULL) {
+        delete worker;
+    }
 }
 
 void Handler::set_base(event_base* base) {
@@ -34,19 +39,23 @@ void Handler::set_sockfd(int fd) {
     this->sockfd = fd;
 }
 
+void Handler::set_reactor(Reactor* reactor) {
+    this->reactor = reactor;
+}
+
 void Handler::init() {
     read_event = event_new(base, sockfd, EV_READ | EV_PERSIST, read_cb, this);
     write_event = event_new(base, sockfd, EV_WRITE | EV_PERSIST, write_cb, this);
     // 添加事件
     event_add(read_event, NULL);
     event_add(write_event, NULL);
-
 }
 
 void Handler::destory() {
     // 删除事件
     event_del(read_event);
     event_del(write_event);
+    reactor->add_remove_list(this);
 }
 
 bool Handler::get_state() {
