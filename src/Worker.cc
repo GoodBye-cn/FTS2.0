@@ -19,7 +19,6 @@ void Worker::set_handler(Handler* handler) {
     this->handler = handler;
 }
 
-
 void Worker::work() {
     memcpy(&resq, buffer, sizeof(Request));
     resq.path[resq.length] = 0;
