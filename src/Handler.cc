@@ -1,5 +1,6 @@
 #include "Handler.h"
-
+#include <cstring>
+#include <sys/sendfile.h>
 
 Handler::Handler() {
     this->read_event = NULL;
@@ -9,6 +10,9 @@ Handler::Handler() {
     this->write_buff_index = 0;
     this->write_buff_size = 0;
     this->working = true;
+
+    this->worker = new Worker();
+    worker->set_handler(this);
 }
 
 Handler::~Handler() {
@@ -26,18 +30,17 @@ void Handler::set_base(event_base* base) {
     this->base = base;
 }
 
-void Handler::set_fd(int fd) {
-    this->fd = fd;
+void Handler::set_sockfd(int fd) {
+    this->sockfd = fd;
 }
 
 void Handler::init() {
-    read_event = event_new(base, fd, EV_READ | EV_PERSIST, read_cb, this);
-    write_event = event_new(base, fd, EV_WRITE | EV_PERSIST, write_cb, this);
+    read_event = event_new(base, sockfd, EV_READ | EV_PERSIST, read_cb, this);
+    write_event = event_new(base, sockfd, EV_WRITE | EV_PERSIST, write_cb, this);
     // 添加事件
     event_add(read_event, NULL);
     event_add(write_event, NULL);
-    // 手动激活事件
-    event_active(write_event, EV_WRITE, 0);
+
 }
 
 void Handler::destory() {
@@ -50,10 +53,36 @@ bool Handler::get_state() {
     return this->working;
 }
 
-void Handler::set_write_buff(char* buff) {
-    this->write_buff = buff;
+// 初始化buffer
+void Handler::init_write_buff(int size) {
+    if (write_buff != NULL) {
+        delete[] write_buff;
+    }
+    this->write_buff = new char[size];
+    this->write_buff_index = 0;
+    this->write_buff_size = size;
 }
 
+// 手动激活事件
+void Handler::active_write_event() {
+    event_active(write_event, EV_WRITE, 0);
+}
+
+void Handler::set_filefd(int fd) {
+    this->filefd = fd;
+}
+
+// 设置write_buffer中的数据
+void Handler::set_write_buff_data(char* data, int size) {
+    memcpy(write_buff, data, size);
+    write_buff_size = size;
+    write_buff_index = 0;
+}
+
+void Handler::set_file_stat(int size) {
+    file_offset = 0;
+    file_size = size;
+}
 
 void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
     // 读取为0关闭连接，直接释放资源
@@ -77,28 +106,48 @@ void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
     }
     handler->read_buff_index += bytes;
     // 请求读取完在处理
-    if(handler->read_buff_index == 1024){
-        
+    int value;
+    if (handler->read_buff_index >= sizeof(int)) {
+        memcpy(&value, buff, sizeof(int));
+        if (handler->read_buff_index >= value) {
+            // 开始处理任务
+        }
     }
 }
 
 void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {
     // 写出错，关闭连接，直接释放资源
     Handler* handler = (Handler*)arg;
-    char* buff = handler->write_buff;
-    int buff_index = handler->write_buff_index;
-    int buff_size = handler->write_buff_size;
-    size_t bytes = 0;
-    bytes = send(fd, buff + buff_index, buff_size - buff_index, 0);
-    if (-1 == bytes) {
-        // 写缓冲区已满
-        if (errno == EWOULDBLOCK || errno == EAGAIN) {
-            return;
+    if (handler->write_buff_index < handler->write_buff_size) {
+        char* buff = handler->write_buff;
+        int buff_index = handler->write_buff_index;
+        int buff_size = handler->write_buff_size;
+        size_t bytes = 0;
+        bytes = send(fd, buff + buff_index, buff_size - buff_index, 0);
+        if (-1 == bytes) {
+            // 写缓冲区已满
+            if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                return;
+            }
+            handler->destory();
+            handler->working = false;
         }
-        handler->destory();
-        handler->working = false;
+        handler->write_buff_index += bytes;
     }
-    handler->write_buff_index += bytes;
+    else if (handler->filefd > 0) {
+        // 使用sendfile函数
+        off_t off = handler->file_offset;
+        ssize_t bytes = 0;
+        bytes = sendfile(handler->sockfd, handler->filefd, &off, handler->file_size - handler->file_offset);
+        if (-1 == bytes) {
+            if (errno == EAGAIN) {
+                return;
+            }
+            handler->destory();
+            handler->working = false;
+        }
+        handler->file_offset += bytes;
+    }
 }
 
 void Handler::event_cb(struct bufferevent* bev, short what, void* ctx) {}

@@ -39,7 +39,7 @@ void Reactor::add_handler(Handler* handler) {
 
 
 void Reactor::remove_handler(Handler* handler) {
-
+    
 }
 
 void Reactor::sigquit_cb(evutil_socket_t sig, short what, void* ctx) {

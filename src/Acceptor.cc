@@ -12,6 +12,6 @@ void Acceptor::accept_conn(struct evconnlistener* listener,
     event_base* base = evconnlistener_get_base(listener);
     Handler* handler = new Handler();
     handler->set_base(base);
-    handler->set_fd(fd);
+    handler->set_sockfd(fd);
     handler->init();
 }
