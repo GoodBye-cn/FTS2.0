@@ -26,8 +26,10 @@ void Reactor::start() {
     sigquit_event = event_new(base, SIGQUIT, EV_SIGNAL | EV_PERSIST, sigquit_cb, NULL);
     event_add(sigquit_event, NULL);
 
-    timer_event = evtimer_new(base, timeout_cb, this);
+    timer_event = event_new(base, -1, EV_TIMEOUT | EV_PERSIST, timeout_cb, this);
+    evutil_timerclear(&time_slot);
     time_slot.tv_sec = 5;
+    time_slot.tv_usec = 0;
     event_add(timer_event, &time_slot);
 
     listener = evconnlistener_new_bind(base, accept_conn_cb, this, LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE, -1, (sockaddr*)&addr, sizeof(addr));
@@ -63,6 +65,12 @@ void Reactor::add_remove_list(Handler* handler) {
     remove_list.push_back(handler);
 }
 
+void Reactor::add_timer() {
+    evutil_timerclear(&time_slot);
+    time_slot.tv_sec = 1;
+    time_slot.tv_usec = 0;
+    event_add(timer_event, &time_slot);
+}
 
 void Reactor::set_threadpool(Threadpool<Worker>* tp) {
     this->threadpool = tp;

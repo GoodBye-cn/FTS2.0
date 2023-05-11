@@ -58,11 +58,10 @@ void Handler::init() {
 void Handler::destory() {
     // 删除事件
     event_del(read_event);
-    if (write_buff != NULL) {
-        event_del(write_event);
-    }
+    event_del(write_event);
+
     reactor->add_remove_list(this);
-    printf("destory handler and worker\n");
+    printf("add handler to remove list and remove read write event\n");
 }
 
 bool Handler::get_state() {

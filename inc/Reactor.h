@@ -22,6 +22,7 @@ public:
     void remove_handler();
     void remove_handler(Handler* handler);
     void start();
+    void add_timer();
     void add_remove_list(Handler* handler);
     void set_threadpool(Threadpool<Worker>* tp);
     Threadpool<Worker>* get_threadpool();
