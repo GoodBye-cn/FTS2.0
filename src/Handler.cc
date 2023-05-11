@@ -35,6 +35,10 @@ Handler::~Handler() {
         event_free(write_event);
         write_event = NULL;
     }
+    if (timeout_event != NULL) {
+        event_free(timeout_event);
+        timeout_event = NULL;
+    }
     if (worker != NULL) {
         delete worker;
     }
@@ -59,13 +63,13 @@ void Handler::init() {
     // 添加事件
     event_add(read_event, NULL);
     add_timeout_event();
-    // event_add(write_event, NULL);
 }
 
 void Handler::destory() {
     // 删除事件
     event_del(read_event);
     event_del(write_event);
+    event_del(timeout_event);
     // 关闭描述符
     if (sockfd > 0) {
         close(sockfd);

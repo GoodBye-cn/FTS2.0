@@ -51,7 +51,9 @@ void Reactor::remove_handler() {
     }
     for (int i = 0; i < remove_list.size(); i++) {
         handlers.erase(remove_list[i]);
+        acceptor->remove_client_address(remove_list[i]);
     }
+    
     remove_list.clear();
     printf("delete handler number: %d\n", num);
 }
