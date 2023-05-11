@@ -1,5 +1,7 @@
 #include "Handler.h"
 #include "Reactor.h"
+#include "MessageFormat.h"
+
 #include <cstring>
 #include <sys/sendfile.h>
 
@@ -11,7 +13,7 @@ Handler::Handler() {
     this->write_buff_index = 0;
     this->write_buff_size = 0;
     this->working = true;
-
+    this->filefd = -1;
     this->worker = new Worker();
     worker->set_handler(this);
     worker->set_buff(this->read_buff, Handler::READ_BUFF_LEN);
@@ -100,28 +102,33 @@ void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
     char* buff = handler->read_buff;
     int index = handler->read_buff_index;
     size_t bytes = 0;
-    bytes = recv(fd, buff + index, Handler::READ_BUFF_LEN - index, 0);
-    if (-1 == bytes) {
-        // 缓冲区数据读取完毕
-        if (errno == EWOULDBLOCK || errno == EAGAIN) {
-            return;
+    while (true) {
+        bytes = recv(fd, buff + index, Handler::READ_BUFF_LEN - index, 0);
+        if (-1 == bytes) {
+            // 缓冲区数据读取完毕
+            if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                break;
+            }
+            handler->destory();
+            handler->working = false;
         }
-        handler->destory();
-        handler->working = false;
-    }
-    // 客户端关闭了连接
-    if (0 == bytes) {
-        handler->destory();
-        handler->working = false;
-    }
-    handler->read_buff_index += bytes;
-    // 请求读取完在处理
-    int value;
-    if (handler->read_buff_index >= sizeof(int)) {
-        memcpy(&value, buff, sizeof(int));
-        if (handler->read_buff_index >= value) {
-            // 开始处理任务
-            handler->reactor->get_threadpool()->append(handler->worker);
+        // 客户端关闭了连接
+        if (0 == bytes) {
+            handler->destory();
+            handler->working = false;
+            break;
+        }
+        handler->read_buff_index += bytes;
+        // 请求读取完在处理
+        int value;
+        if (handler->read_buff_index >= sizeof(int)) {
+            memcpy(&value, buff, sizeof(int));
+            if (handler->read_buff_index == value + sizeof(int)) {
+                // 开始处理任务
+                // handler->reactor->get_threadpool()->append(handler->worker);
+                handler->worker->work();
+                break;
+            }
         }
     }
 }
@@ -129,35 +136,48 @@ void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
 void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {
     // 写出错，关闭连接，直接释放资源
     Handler* handler = (Handler*)arg;
-    if (handler->write_buff_index < handler->write_buff_size) {
-        char* buff = handler->write_buff;
-        int buff_index = handler->write_buff_index;
-        int buff_size = handler->write_buff_size;
-        size_t bytes = 0;
-        bytes = send(fd, buff + buff_index, buff_size - buff_index, 0);
-        if (-1 == bytes) {
-            // 写缓冲区已满
-            if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                return;
+    while (true) {
+        if (handler->write_buff_index < handler->write_buff_size) {
+            char* buff = handler->write_buff;
+            Response tmp;
+            memcpy(&tmp, buff, handler->write_buff_size);
+            printf("file size: %d", tmp.size);
+            int buff_index = handler->write_buff_index;
+            int buff_size = handler->write_buff_size;
+            size_t bytes = 0;
+            bytes = send(fd, buff + buff_index, buff_size - buff_index, 0);
+            if (-1 == bytes) {
+                // 写缓冲区已满
+                if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                    break;
+                }
+                handler->destory();
+                handler->working = false;
             }
-            handler->destory();
-            handler->working = false;
+            handler->write_buff_index += bytes;
         }
-        handler->write_buff_index += bytes;
-    }
-    else if (handler->filefd > 0) {
-        // 使用sendfile函数
-        off_t off = handler->file_offset;
-        ssize_t bytes = 0;
-        bytes = sendfile(handler->sockfd, handler->filefd, &off, handler->file_size - handler->file_offset);
-        if (-1 == bytes) {
-            if (errno == EAGAIN) {
-                return;
+        if (handler->filefd > 0) {
+            // 使用sendfile函数
+            off_t off = handler->file_offset;
+            ssize_t bytes = 0;
+            bytes = sendfile(handler->sockfd, handler->filefd, &off, handler->file_size - handler->file_offset);
+            if (-1 == bytes) {
+                if (errno == EAGAIN) {
+                    break;
+                }
+                handler->destory();
+                handler->working = false;
             }
-            handler->destory();
-            handler->working = false;
+            handler->file_offset += bytes;
+            if (handler->file_offset == handler->file_size) {
+                close(handler->filefd);
+                handler->filefd = -1;
+                break;
+            }
         }
-        handler->file_offset += bytes;
+        else {
+            break;
+        }
     }
 }
 
