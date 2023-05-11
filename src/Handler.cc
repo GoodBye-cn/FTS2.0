@@ -49,7 +49,7 @@ void Handler::set_reactor(Reactor* reactor) {
 }
 
 void Handler::init() {
-    read_event = event_new(base, sockfd, EV_READ | EV_PERSIST, read_cb, this);
+    read_event = event_new(base, sockfd, EV_READ | EV_PERSIST | EV_ET, read_cb, this);
     write_event = event_new(base, sockfd, EV_WRITE | EV_PERSIST | EV_ET, write_cb, this);
     // 添加事件
     event_add(read_event, NULL);
@@ -101,7 +101,6 @@ void Handler::set_file_stat(int size) {
 void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
     // 读取为0关闭连接，直接释放资源
     Handler* handler = (Handler*)arg;
-    MutexGuard mutex_guard(handler->write_buff_mutex);
     char* buff = handler->read_buff;
     int index = handler->read_buff_index;
     size_t bytes = 0;
@@ -140,12 +139,13 @@ void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {
     // 写出错，关闭连接，直接释放资源
     // 需要加锁对 write_buff_index 和 write_buff_size操作的时候
     Handler* handler = (Handler*)arg;
+    MutexGuard mutex_guard(handler->write_buff_mutex);
     while (true) {
         if (handler->write_buff != NULL && handler->write_buff_index < handler->write_buff_size) {
             char* buff = handler->write_buff;
             Response tmp;
             memcpy(&tmp, buff, handler->write_buff_size);
-            printf("file size: %d", tmp.size);
+            printf("file size: %d\n", tmp.size);
             int buff_index = handler->write_buff_index;
             int buff_size = handler->write_buff_size;
             size_t bytes = 0;
@@ -184,6 +184,8 @@ void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {
             }
         }
         else {
+            ++handler->count;
+            printf("write ok but not send data %d\n", handler->count);
             break;
         }
     }

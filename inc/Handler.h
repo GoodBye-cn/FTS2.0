@@ -46,6 +46,8 @@ private:
 
     Worker* worker;
     Reactor* reactor;
+
+    int count = 0;
 public:
     Mutex write_buff_mutex;
 };

@@ -38,14 +38,15 @@ void Reactor::add_handler(Handler* handler) {
 }
 
 void Reactor::remove_handler() {
+    int num = remove_list.size();
     if (remove_list.size() == 0) {
         return;
     }
     for (int i = 0; i < remove_list.size(); i++) {
         handlers.erase(remove_list[i]);
     }
-
     remove_list.clear();
+    printf("delete handler number: %d", num);
 }
 
 void Reactor::remove_handler(Handler* handler) {
