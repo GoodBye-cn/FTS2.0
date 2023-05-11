@@ -29,9 +29,11 @@ void Worker::work() {
         resp.size = file_stat.st_size;
         handler->set_file_stat(file_stat.st_size);
     }
-    MutexGuard mutex_guard(handler->write_mutex);
+    // MutexGuard mutex_guard(handler->write_mutex);
+    handler->write_mutex.lock();
     handler->set_filefd(filefd);
     handler->init_write_buff(sizeof(Response));
     handler->set_write_buff_data((char*)&resp, sizeof(Response));
+    handler->write_mutex.unlock();
     handler->active_write_event();
 }

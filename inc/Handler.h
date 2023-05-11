@@ -20,6 +20,7 @@ public:
     void init_write_buff(int size);
     void set_write_buff_data(char* data, int size);
     void active_write_event();
+    int remove_write_event();
     void set_filefd(int fd);
     void set_file_stat(int size);
 

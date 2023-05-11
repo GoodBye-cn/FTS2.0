@@ -30,7 +30,6 @@ Handler::~Handler() {
         event_free(write_event);
         write_event = NULL;
     }
-
     if (worker != NULL) {
         delete worker;
     }
@@ -50,17 +49,20 @@ void Handler::set_reactor(Reactor* reactor) {
 
 void Handler::init() {
     read_event = event_new(base, sockfd, EV_READ | EV_PERSIST | EV_ET, read_cb, this);
-    write_event = event_new(base, sockfd, EV_WRITE | EV_PERSIST, write_cb, this);
+    write_event = event_new(base, sockfd, EV_WRITE | EV_PERSIST | EV_ET, write_cb, this);
     // 添加事件
     event_add(read_event, NULL);
-    event_add(write_event, NULL);
+    // event_add(write_event, NULL);
 }
 
 void Handler::destory() {
     // 删除事件
     event_del(read_event);
-    event_del(write_event);
+    if (write_buff != NULL) {
+        event_del(write_event);
+    }
     reactor->add_remove_list(this);
+    printf("destory handler and worker\n");
 }
 
 bool Handler::get_state() {
@@ -79,7 +81,14 @@ void Handler::init_write_buff(int size) {
 
 // 手动激活事件
 void Handler::active_write_event() {
-    event_active(write_event, EV_WRITE, 0);
+    event_add(write_event, NULL);
+    // 当write_event就是激活状态的时候，不会再次激活
+    event_active(write_event, EV_WRITE, 1);
+    printf("activate write event\n");
+}
+
+int Handler::remove_write_event() {
+    return event_del(write_event);
 }
 
 void Handler::set_filefd(int fd) {
@@ -128,6 +137,7 @@ void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
             if (handler->read_buff_index == value + sizeof(int)) {
                 // 开始处理任务
                 handler->reactor->get_threadpool()->append(handler->worker);
+                // 测试单线程的时候使用
                 // handler->worker->work();
                 break;
             }
@@ -177,6 +187,8 @@ void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {
             }
             handler->file_offset += bytes;
             if (handler->file_offset == handler->file_size) {
+                // 文件发送完毕，清除buff，关闭文件，移出写事件
+                handler->remove_write_event();
                 close(handler->filefd);
                 handler->filefd = -1;
                 delete[] handler->write_buff;
