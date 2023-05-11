@@ -27,7 +27,6 @@ void Worker::work() {
         stat(resq.path, &file_stat);
         resp.size = file_stat.st_size;
         handler->set_file_stat(file_stat.st_size);
-        printf("file size: %d\n", resp.size);
     }
     handler->set_filefd(filefd);
     handler->set_write_buff_data((char*)&resp, sizeof(Response));

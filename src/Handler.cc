@@ -14,6 +14,7 @@ Handler::Handler() {
     this->write_buff_size = 0;
     this->working = true;
     this->filefd = -1;
+    this->write_buff = NULL;
     this->worker = new Worker();
     worker->set_handler(this);
     worker->set_buff(this->read_buff, Handler::READ_BUFF_LEN);
@@ -47,7 +48,7 @@ void Handler::set_reactor(Reactor* reactor) {
 }
 
 void Handler::init() {
-    read_event = event_new(base, sockfd, EV_READ | EV_PERSIST, read_cb, this);
+    read_event = event_new(base, sockfd, EV_READ | EV_PERSIST | EV_ET, read_cb, this);
     write_event = event_new(base, sockfd, EV_WRITE | EV_PERSIST, write_cb, this);
     // 添加事件
     event_add(read_event, NULL);
@@ -125,8 +126,8 @@ void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
             memcpy(&value, buff, sizeof(int));
             if (handler->read_buff_index == value + sizeof(int)) {
                 // 开始处理任务
-                // handler->reactor->get_threadpool()->append(handler->worker);
-                handler->worker->work();
+                handler->reactor->get_threadpool()->append(handler->worker);
+                // handler->worker->work();
                 break;
             }
         }
@@ -135,9 +136,10 @@ void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
 
 void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {
     // 写出错，关闭连接，直接释放资源
+    // 需要加锁对 write_buff_index 和 write_buff_size操作的时候
     Handler* handler = (Handler*)arg;
     while (true) {
-        if (handler->write_buff_index < handler->write_buff_size) {
+        if (handler->write_buff != NULL && handler->write_buff_index < handler->write_buff_size) {
             char* buff = handler->write_buff;
             Response tmp;
             memcpy(&tmp, buff, handler->write_buff_size);
@@ -155,8 +157,9 @@ void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {
                 handler->working = false;
             }
             handler->write_buff_index += bytes;
+            continue;
         }
-        if (handler->filefd > 0) {
+        if (handler->write_buff != NULL && handler->filefd > 0) {
             // 使用sendfile函数
             off_t off = handler->file_offset;
             ssize_t bytes = 0;
@@ -167,11 +170,14 @@ void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {
                 }
                 handler->destory();
                 handler->working = false;
+                break;
             }
             handler->file_offset += bytes;
             if (handler->file_offset == handler->file_size) {
                 close(handler->filefd);
                 handler->filefd = -1;
+                delete[] handler->write_buff;
+                handler->write_buff = NULL;
                 break;
             }
         }
