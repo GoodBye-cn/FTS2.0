@@ -6,9 +6,10 @@
 #include <netinet/in.h>
 #include <set>
 #include <vector>
-
 #include <string.h>
+#include "Threadpool.h"
 
+#include "Worker.h"
 class Handler;
 class Acceptor;
 
@@ -22,6 +23,9 @@ public:
     void remove_handler(Handler* handler);
     void start();
     void add_remove_list(Handler* handler);
+    void set_threadpool(Threadpool<Worker>* tp);
+    Threadpool<Worker>* get_threadpool();
+
 
 private:
     static void sigquit_cb(evutil_socket_t sig, short what, void* ctx);
@@ -39,6 +43,7 @@ private:
     std::vector<Handler*> remove_list;
     std::set<Handler*> handlers;
     Acceptor* acceptor;
+    Threadpool<Worker>* threadpool;
 };
 
 

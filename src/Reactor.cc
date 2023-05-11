@@ -1,6 +1,6 @@
 #include "Reactor.h"
 #include "Acceptor.h"
-
+#include "Worker.h"
 #include <signal.h>
 
 Reactor::Reactor() {
@@ -54,6 +54,15 @@ void Reactor::remove_handler(Handler* handler) {
 
 void Reactor::add_remove_list(Handler* handler) {
     remove_list.push_back(handler);
+}
+
+
+void Reactor::set_threadpool(Threadpool<Worker>* tp) {
+    this->threadpool = tp;
+}
+
+Threadpool<Worker>* Reactor::get_threadpool() {
+    return threadpool;
 }
 
 

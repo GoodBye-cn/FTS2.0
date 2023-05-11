@@ -14,6 +14,7 @@ Handler::Handler() {
 
     this->worker = new Worker();
     worker->set_handler(this);
+    worker->set_buff(this->read_buff, Handler::READ_BUFF_LEN);
 }
 
 Handler::~Handler() {
@@ -120,6 +121,7 @@ void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
         memcpy(&value, buff, sizeof(int));
         if (handler->read_buff_index >= value) {
             // 开始处理任务
+            handler->reactor->get_threadpool()->append(handler->worker);
         }
     }
 }
