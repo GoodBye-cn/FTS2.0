@@ -50,7 +50,7 @@ void Handler::set_reactor(Reactor* reactor) {
 
 void Handler::init() {
     read_event = event_new(base, sockfd, EV_READ | EV_PERSIST | EV_ET, read_cb, this);
-    write_event = event_new(base, sockfd, EV_WRITE | EV_PERSIST | EV_ET, write_cb, this);
+    write_event = event_new(base, sockfd, EV_WRITE | EV_PERSIST, write_cb, this);
     // 添加事件
     event_add(read_event, NULL);
     event_add(write_event, NULL);
@@ -137,9 +137,10 @@ void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
 
 void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {
     // 写出错，关闭连接，直接释放资源
-    // 需要加锁对 write_buff_index 和 write_buff_size操作的时候
+    // 需要加锁对 write_buff_index 和 write_buff_size 操作的时候
+    printf("write callback\n");
     Handler* handler = (Handler*)arg;
-    MutexGuard mutex_guard(handler->write_buff_mutex);
+    MutexGuard mutex_guard(handler->write_mutex);
     while (true) {
         if (handler->write_buff != NULL && handler->write_buff_index < handler->write_buff_size) {
             char* buff = handler->write_buff;

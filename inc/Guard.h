@@ -8,7 +8,11 @@ class MutexGuard {
 public:
     MutexGuard(Mutex& mutex) :m_mutex(mutex) {
         m_mutex = mutex;
-        m_mutex.lock();
+        int res = 0;
+        if ((res = m_mutex.lock()) != 0) {
+            std::exception();
+        }
+        printf("mutex lock result %d\n", res);
     }
     ~MutexGuard() {
         m_mutex.unlock();

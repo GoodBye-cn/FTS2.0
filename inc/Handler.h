@@ -49,7 +49,7 @@ private:
 
     int count = 0;
 public:
-    Mutex write_buff_mutex;
+    Mutex write_mutex;
 };
 
 #endif
