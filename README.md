@@ -2,6 +2,9 @@
 文件传输服务器的2.0版本
 使用libevent的监听事件，监听socket fd的读操作和写操作
 
+## Reactor
+可是设置定时事件，用来销毁handler和worker
+
 ## 存在问题
 1. 多线程下有bug，发送文件的大小有错误，导致提前结束
 解决方法：worker线程设置write_buff时，导致handler线程的的条件出错，给线程加锁

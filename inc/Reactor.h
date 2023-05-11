@@ -29,6 +29,7 @@ public:
 
 private:
     static void sigquit_cb(evutil_socket_t sig, short what, void* ctx);
+    static void timeout_cb(evutil_socket_t sig, short what, void* ctx);
     static void accept_conn_cb(struct evconnlistener* listener,
         evutil_socket_t fd, struct sockaddr* address, int socklen,
         void* ctx);
@@ -40,10 +41,12 @@ private:
     event_base* base;
     evconnlistener* listener;
     event* sigquit_event;
+    event* timer_event;
     std::vector<Handler*> remove_list;
     std::set<Handler*> handlers;
     Acceptor* acceptor;
     Threadpool<Worker>* threadpool;
+    timeval time_slot;
 };
 
 

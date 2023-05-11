@@ -25,6 +25,11 @@ void Reactor::start() {
     /* process signal quit */
     sigquit_event = event_new(base, SIGQUIT, EV_SIGNAL | EV_PERSIST, sigquit_cb, NULL);
     event_add(sigquit_event, NULL);
+
+    timer_event = evtimer_new(base, timeout_cb, this);
+    time_slot.tv_sec = 5;
+    event_add(timer_event, &time_slot);
+
     listener = evconnlistener_new_bind(base, accept_conn_cb, this, LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE, -1, (sockaddr*)&addr, sizeof(addr));
     if (listener == NULL) {
         perror("Couldn't create listener");
@@ -53,6 +58,7 @@ void Reactor::remove_handler(Handler* handler) {
     handlers.erase(handler);
 }
 
+// 将要销毁的Handler放到销毁队列中
 void Reactor::add_remove_list(Handler* handler) {
     remove_list.push_back(handler);
 }
@@ -69,6 +75,12 @@ Threadpool<Worker>* Reactor::get_threadpool() {
 
 void Reactor::sigquit_cb(evutil_socket_t sig, short what, void* ctx) {
     printf("SIGQUIT\n");
+}
+
+void Reactor::timeout_cb(evutil_socket_t sig, short what, void* ctx) {
+    Reactor* reactor = (Reactor*)ctx;
+    printf("time out event and start delete handler\n");
+    reactor->remove_handler();
 }
 
 /**

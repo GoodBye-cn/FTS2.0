@@ -2,7 +2,7 @@
 #include "Handler.h"
 #include "Reactor.h"
 
-Acceptor::Acceptor(/* args */) {}
+Acceptor::Acceptor() {}
 
 Acceptor::~Acceptor() {}
 
