@@ -9,16 +9,21 @@
 Handler::Handler() {
     this->read_event = NULL;
     this->write_event = NULL;
+    this->timeout_event = NULL;
+    this->live_time = 10;
     this->read_buff_index = 0;
     this->read_buff_size = 0;
     this->write_buff_index = 0;
     this->write_buff_size = 0;
     this->working = true;
+    this->requesting = false;
     this->filefd = -1;
     this->write_buff = NULL;
     this->worker = new Worker();
     worker->set_handler(this);
     worker->set_buff(this->read_buff, Handler::READ_BUFF_LEN);
+    gettimeofday(&death_time, NULL);
+    reset_death_time();
 }
 
 Handler::~Handler() {
@@ -48,10 +53,12 @@ void Handler::set_reactor(Reactor* reactor) {
 }
 
 void Handler::init() {
-    read_event = event_new(base, sockfd, EV_READ | EV_PERSIST | EV_ET, read_cb, this);
+    read_event = event_new(base, sockfd, EV_READ | EV_PERSIST, read_cb, this);
     write_event = event_new(base, sockfd, EV_WRITE | EV_PERSIST | EV_ET, write_cb, this);
+    timeout_event = event_new(base, -1, EV_TIMEOUT, timeout_cb, this);
     // 添加事件
     event_add(read_event, NULL);
+    add_timeout_event();
     // event_add(write_event, NULL);
 }
 
@@ -59,7 +66,15 @@ void Handler::destory() {
     // 删除事件
     event_del(read_event);
     event_del(write_event);
+    // 关闭描述符
+    if (sockfd > 0) {
+        close(sockfd);
 
+    }
+    if (filefd > 0) {
+        close(filefd);
+    }
+    // 添加到删除队列
     reactor->add_remove_list(this);
     printf("add handler to remove list and remove read write event\n");
 }
@@ -90,6 +105,31 @@ int Handler::remove_write_event() {
     return event_del(write_event);
 }
 
+int Handler::add_read_event() {
+    return event_add(read_event, NULL);
+}
+
+int Handler::remove_read_event() {
+    return event_del(read_event);
+}
+
+int Handler::add_timeout_event() {
+    timeval tv;
+    tv.tv_sec = live_time;
+    tv.tv_usec = 0;
+    return event_add(timeout_event, &tv);
+}
+
+/**
+ * 重置死亡时间，现有的死亡时间基础上加 live_time s
+ */
+void Handler::reset_death_time() {
+    timeval tv;
+    tv.tv_sec = live_time;
+    tv.tv_usec = 0;
+    timeradd(&death_time, &tv, &death_time);
+}
+
 void Handler::set_filefd(int fd) {
     this->filefd = fd;
 }
@@ -108,6 +148,7 @@ void Handler::set_file_stat(int size) {
 
 void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
     // 读取为0关闭连接，直接释放资源
+    printf("read event callback\n");
     Handler* handler = (Handler*)arg;
     char* buff = handler->read_buff;
     int index = handler->read_buff_index;
@@ -138,6 +179,9 @@ void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
                 handler->reactor->get_threadpool()->append(handler->worker);
                 // 测试单线程的时候使用
                 // handler->worker->work();
+                handler->remove_read_event();
+                handler->read_buff_index = 0;
+                handler->requesting = true;
                 break;
             }
         }
@@ -147,7 +191,7 @@ void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
 void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {
     // 写出错，关闭连接，直接释放资源
     // 需要加锁对 write_buff_index 和 write_buff_size 操作的时候
-    printf("write callback\n");
+    printf("write event callback\n");
     Handler* handler = (Handler*)arg;
     MutexGuard mutex_guard(handler->write_mutex);
     while (true) {
@@ -192,6 +236,8 @@ void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {
                 handler->filefd = -1;
                 delete[] handler->write_buff;
                 handler->write_buff = NULL;
+                handler->add_read_event();
+                handler->requesting = false;
                 break;
             }
         }
@@ -203,15 +249,24 @@ void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {
     }
 }
 
-void Handler::event_cb(struct bufferevent* bev, short what, void* ctx) {}
-
-void Handler::func_cb(evutil_socket_t fd, short what, void* arg) {
-    // 读取 fd 中的内容到 buffer
-    if (what & EV_READ) {
-
+void Handler::timeout_cb(evutil_socket_t fd, short what, void* arg) {
+    // 比较Handler的死亡时间和现在的时间
+    Handler* handler = (Handler*)arg;
+    timeval now;
+    gettimeofday(&now, NULL);
+    // 如果未超时，等待下一次连接
+    if (timercmp(&now, &(handler->death_time), < )) {
+        handler->add_timeout_event();
+        return;
     }
-    // 将 buffer 中的内容写道 fd
-    if (what & EV_WRITE) {
-
+    // 如果超时，但还有任务，加时
+    if (handler->requesting) {
+        handler->add_timeout_event();
+        handler->reset_death_time();
+        return;
     }
+    printf("timeout and close connection\n");
+    handler->destory();
+    handler->working = false;
+    return;
 }

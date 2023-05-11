@@ -21,14 +21,17 @@ public:
     void set_write_buff_data(char* data, int size);
     void active_write_event();
     int remove_write_event();
+    int add_read_event();
+    int add_timeout_event();
+    void reset_death_time();
+    int remove_read_event();
     void set_filefd(int fd);
     void set_file_stat(int size);
 
 private:
     static void read_cb(evutil_socket_t fd, short what, void* arg);
     static void write_cb(evutil_socket_t fd, short what, void* arg);
-    static void event_cb(struct bufferevent* bev, short what, void* ctx);
-    static void func_cb(evutil_socket_t fd, short what, void* arg);
+    static void timeout_cb(evutil_socket_t fd, short what, void* arg);
 
     static const int READ_BUFF_LEN = 1024;
     static const int WRITE_BUFF_LEN = 1024;
@@ -38,13 +41,15 @@ private:
     event_base* base;
     event* read_event;
     event* write_event;
+    event* timeout_event;
+    timeval death_time;
+    int live_time;
     char read_buff[Handler::READ_BUFF_LEN];
     char* write_buff;
     int filefd;
     int read_buff_index, read_buff_size;
     int write_buff_index, write_buff_size, file_size, file_offset;
-    bool working;
-
+    bool working, requesting;
     Worker* worker;
     Reactor* reactor;
 
