@@ -46,6 +46,8 @@ private:
 
     Worker* worker;
     Reactor* reactor;
+public:
+    Mutex write_buff_mutex;
 };
 
 #endif

@@ -1,6 +1,7 @@
 #include "Handler.h"
 #include "Reactor.h"
 #include "MessageFormat.h"
+#include "Guard.h"
 
 #include <cstring>
 #include <sys/sendfile.h>
@@ -48,8 +49,8 @@ void Handler::set_reactor(Reactor* reactor) {
 }
 
 void Handler::init() {
-    read_event = event_new(base, sockfd, EV_READ | EV_PERSIST | EV_ET, read_cb, this);
-    write_event = event_new(base, sockfd, EV_WRITE | EV_PERSIST, write_cb, this);
+    read_event = event_new(base, sockfd, EV_READ | EV_PERSIST, read_cb, this);
+    write_event = event_new(base, sockfd, EV_WRITE | EV_PERSIST | EV_ET, write_cb, this);
     // 添加事件
     event_add(read_event, NULL);
     event_add(write_event, NULL);
@@ -100,6 +101,7 @@ void Handler::set_file_stat(int size) {
 void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
     // 读取为0关闭连接，直接释放资源
     Handler* handler = (Handler*)arg;
+    MutexGuard mutex_guard(handler->write_buff_mutex);
     char* buff = handler->read_buff;
     int index = handler->read_buff_index;
     size_t bytes = 0;

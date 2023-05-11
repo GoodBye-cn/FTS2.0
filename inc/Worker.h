@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "Lock.h"
 #include "MessageFormat.h"
 
 class Handler;
@@ -30,6 +31,7 @@ private:
     Handler* handler;
     Request resq;
     Response resp;
+
 };
 
 #endif

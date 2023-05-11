@@ -1,6 +1,8 @@
 #include "Worker.h"
 #include "Handler.h"
 #include "string.h"
+#include "Guard.h"
+#include "Lock.h"
 
 Worker::Worker() {}
 
@@ -19,7 +21,6 @@ void Worker::work() {
     memcpy(&resq, buffer, sizeof(Request));
     resq.path[resq.length] = 0;
     int filefd = open(resq.path, O_RDONLY);
-    handler->init_write_buff(sizeof(Response));
     if (-1 == filefd) {
         resp.size = -1;
     }
@@ -28,7 +29,9 @@ void Worker::work() {
         resp.size = file_stat.st_size;
         handler->set_file_stat(file_stat.st_size);
     }
+    MutexGuard mutex_guard(handler->write_buff_mutex);
     handler->set_filefd(filefd);
+    handler->init_write_buff(sizeof(Response));
     handler->set_write_buff_data((char*)&resp, sizeof(Response));
     handler->active_write_event();
 }
