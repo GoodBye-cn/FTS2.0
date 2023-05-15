@@ -6,6 +6,7 @@
 #include "Worker.h"
 
 class Reactor;
+
 class Handler {
 public:
     Handler();
@@ -27,6 +28,7 @@ public:
     int remove_read_event();
     void set_filefd(int fd);
     void set_file_stat(int size);
+    void finish_request();
 
 private:
     static void read_cb(evutil_socket_t fd, short what, void* arg);
@@ -52,7 +54,6 @@ private:
     bool working, requesting;
     Worker* worker;
     Reactor* reactor;
-
     int count = 0;
 public:
     Mutex write_mutex;

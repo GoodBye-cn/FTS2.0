@@ -150,6 +150,16 @@ void Handler::set_file_stat(int size) {
     file_size = size;
 }
 
+void Handler::finish_request() {
+    remove_write_event();
+    close(filefd);
+    filefd = -1;
+    delete[] write_buff;
+    write_buff = NULL;
+    add_read_event();
+    requesting = false;
+}
+
 void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
     // 读取为0关闭连接，直接释放资源
     printf("read event callback\n");
@@ -199,11 +209,12 @@ void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {
     Handler* handler = (Handler*)arg;
     MutexGuard mutex_guard(handler->write_mutex);
     while (true) {
+        // 发送Response，buffer中的内容为Response
         if (handler->write_buff != NULL && handler->write_buff_index < handler->write_buff_size) {
             char* buff = handler->write_buff;
-            Response tmp;
-            memcpy(&tmp, buff, handler->write_buff_size);
-            printf("file size: %d\n", tmp.size);
+            // Response tmp;
+            // memcpy(&tmp, buff, handler->write_buff_size);
+            // printf("file size: %d\n", tmp.size);
             int buff_index = handler->write_buff_index;
             int buff_size = handler->write_buff_size;
             size_t bytes = 0;
@@ -219,6 +230,11 @@ void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {
             handler->write_buff_index += bytes;
             continue;
         }
+        // 请求路径失败，buffer发送完直接关闭这次请求
+        if (handler->write_buff != NULL && handler->filefd < 0) {
+            handler->finish_request();
+        }
+        // 回复的头发送完毕，开始发送文件
         if (handler->write_buff != NULL && handler->filefd > 0) {
             // 使用sendfile函数
             off_t off = handler->file_offset;
@@ -235,13 +251,14 @@ void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {
             handler->file_offset += bytes;
             if (handler->file_offset == handler->file_size) {
                 // 文件发送完毕，清除buff，关闭文件，移出写事件
-                handler->remove_write_event();
-                close(handler->filefd);
-                handler->filefd = -1;
-                delete[] handler->write_buff;
-                handler->write_buff = NULL;
-                handler->add_read_event();
-                handler->requesting = false;
+                handler->finish_request();
+                // handler->remove_write_event();
+                // close(handler->filefd);
+                // handler->filefd = -1;
+                // delete[] handler->write_buff;
+                // handler->write_buff = NULL;
+                // handler->add_read_event();
+                // handler->requesting = false;
                 break;
             }
         }
