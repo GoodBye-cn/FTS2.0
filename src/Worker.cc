@@ -18,22 +18,28 @@ void Worker::set_handler(Handler* handler) {
 }
 
 void Worker::work() {
-    memcpy(&resq, buffer, sizeof(Request));
-    resq.path[resq.length] = 0;
-    int filefd = open(resq.path, O_RDONLY);
+    memset(&req, 0, sizeof(FileRequest));
+    memset(&rsp, 0, sizeof(FileResponse));
+
+    memcpy(&req, buffer, sizeof(FileRequest));
+    req.file_path[req.length - sizeof(MsgType) - sizeof(int)] = 0;
+    int filefd = open(req.file_path, O_RDONLY);
     if (-1 == filefd) {
-        resp.size = -1;
+        rsp.file_size = -1;
+        sprintf(rsp.msg, "file path error");
+        rsp.length = sizeof(int) + sizeof(int) + strlen(rsp.msg);
     }
     else {
-        stat(resq.path, &file_stat);
-        resp.size = file_stat.st_size;
+        stat(req.file_path, &file_stat);
+        rsp.file_size = file_stat.st_size;
+        sprintf(rsp.msg, "this is file");
+        rsp.length = sizeof(int) + sizeof(int) + strlen(rsp.msg);
         handler->set_file_stat(file_stat.st_size);
     }
-    // MutexGuard mutex_guard(handler->write_mutex);
     handler->write_mutex.lock();
     handler->set_filefd(filefd);
-    handler->init_write_buff(sizeof(Response));
-    handler->set_write_buff_data((char*)&resp, sizeof(Response));
+    handler->init_write_buff(rsp.length);
+    handler->set_write_buff_data((char*)&rsp, rsp.length);
     handler->write_mutex.unlock();
     handler->active_write_event();
 }

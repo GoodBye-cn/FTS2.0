@@ -188,7 +188,7 @@ void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
         int value;
         if (handler->read_buff_index >= sizeof(int)) {
             memcpy(&value, buff, sizeof(int));
-            if (handler->read_buff_index == value + sizeof(int)) {
+            if (handler->read_buff_index == value) {
                 // 开始处理任务
                 handler->reactor->get_threadpool()->append(handler->worker);
                 // 测试单线程的时候使用
@@ -212,9 +212,6 @@ void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {
         // 发送Response，buffer中的内容为Response
         if (handler->write_buff != NULL && handler->write_buff_index < handler->write_buff_size) {
             char* buff = handler->write_buff;
-            // Response tmp;
-            // memcpy(&tmp, buff, handler->write_buff_size);
-            // printf("file size: %d\n", tmp.size);
             int buff_index = handler->write_buff_index;
             int buff_size = handler->write_buff_size;
             size_t bytes = 0;
@@ -252,13 +249,6 @@ void Handler::write_cb(evutil_socket_t fd, short what, void* arg) {
             if (handler->file_offset == handler->file_size) {
                 // 文件发送完毕，清除buff，关闭文件，移出写事件
                 handler->finish_request();
-                // handler->remove_write_event();
-                // close(handler->filefd);
-                // handler->filefd = -1;
-                // delete[] handler->write_buff;
-                // handler->write_buff = NULL;
-                // handler->add_read_event();
-                // handler->requesting = false;
                 break;
             }
         }

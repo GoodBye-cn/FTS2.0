@@ -29,9 +29,10 @@ private:
     int buffer_size;
     struct stat file_stat;
     Handler* handler;
-    Request resq;
-    Response resp;
-
+    // Request resq;
+    // Response resp;
+    FileResponse rsp;
+    FileRequest req;
 };
 
 #endif
