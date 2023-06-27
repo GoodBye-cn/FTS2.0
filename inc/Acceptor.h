@@ -20,6 +20,7 @@ public:
 
 private:
     std::unordered_map <Handler*, sockaddr_in> client_addres;
+    unsigned int count;
 };
 
 

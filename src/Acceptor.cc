@@ -2,7 +2,9 @@
 #include "Handler.h"
 #include "Reactor.h"
 
-Acceptor::Acceptor() {}
+Acceptor::Acceptor() {
+    count = 0;
+}
 
 Acceptor::~Acceptor() {}
 
@@ -30,5 +32,6 @@ void Acceptor::accept_conn(struct evconnlistener* listener,
     handler->set_reactor(reactor);
     handler->init();
     add_client_address(handler, addr);
-
+    ++count;
+    printf("client connection number %d\n", count);
 }
