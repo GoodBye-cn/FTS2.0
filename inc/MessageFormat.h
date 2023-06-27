@@ -4,7 +4,7 @@
 #define PATHLEN 1024
 #define MAX_MSG_LEN 1024
 
-typedef enum { DIR, PATH, FILE } MsgType;
+typedef enum { DIR, PATH, DATA } MsgType;
 
 struct Request {
     int length;
