@@ -10,7 +10,7 @@ Handler::Handler() {
     this->read_event = NULL;
     this->write_event = NULL;
     this->timeout_event = NULL;
-    this->live_time = 10;
+    this->live_time = 5;
     this->read_buff_index = 0;
     this->read_buff_size = 0;
     this->write_buff_index = 0;

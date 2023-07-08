@@ -6,6 +6,7 @@
 Reactor::Reactor() {
     this->port = 8888;
     this->ip = "0.0.0.0";
+    this->clear_client_data_slot = 5;
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
@@ -28,7 +29,7 @@ void Reactor::start() {
 
     timer_event = event_new(base, -1, EV_TIMEOUT | EV_PERSIST, timeout_cb, this);
     evutil_timerclear(&time_slot);
-    time_slot.tv_sec = 5;
+    time_slot.tv_sec = clear_client_data_slot;
     time_slot.tv_usec = 0;
     event_add(timer_event, &time_slot);
 
@@ -69,7 +70,7 @@ void Reactor::add_remove_list(Handler* handler) {
 
 void Reactor::add_timer() {
     evutil_timerclear(&time_slot);
-    time_slot.tv_sec = 1;
+    time_slot.tv_sec = 5;
     time_slot.tv_usec = 0;
     event_add(timer_event, &time_slot);
 }

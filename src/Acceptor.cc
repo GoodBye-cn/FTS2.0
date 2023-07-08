@@ -33,5 +33,5 @@ void Acceptor::accept_conn(struct evconnlistener* listener,
     handler->init();
     add_client_address(handler, addr);
     ++count;
-    printf("client connection number %d\n", count);
+    // printf("client connection number %d\n", count);
 }

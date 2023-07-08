@@ -48,6 +48,7 @@ private:
     Acceptor* acceptor;
     Threadpool<Worker>* threadpool;
     timeval time_slot;
+    int clear_client_data_slot;
 };
 
 
