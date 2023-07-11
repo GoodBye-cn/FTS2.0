@@ -15,14 +15,13 @@ Reactor::Reactor() {
     addr.sin_addr.s_addr = inet_addr("0.0.0.0");
     this->base = event_base_new();
     // acceptor = new Acceptor();
-    acceptor_tmp = std::make_unique<Acceptor>();
+    acceptor = std::make_unique<Acceptor>();
 }
 
 Reactor::~Reactor() {
     event_free(sigquit_event);
     event_base_free(base);
     evconnlistener_free(listener);
-    // delete acceptor;
 }
 
 void Reactor::set_self(std::shared_ptr<Reactor> self) {
@@ -49,29 +48,24 @@ void Reactor::start() {
 }
 
 
-// void Reactor::add_handler(std::shared_ptr<Handler> handler) {
-//     handlers_tmp.insert(handler);
-// }
-
-
 void Reactor::remove_handler() {
-    int num = remove_list_tmp.size();
-    if (remove_list_tmp.size() == 0) {
+    int num = remove_list.size();
+    if (remove_list.size() == 0) {
         return;
     }
-    for (int i = 0; i < remove_list_tmp.size(); i++) {
-        printf("use count of handler: %ld\n", remove_list_tmp[i].use_count());
-        acceptor_tmp->remove_client_address(remove_list_tmp[i]);
+    for (int i = 0; i < remove_list.size(); i++) {
+        printf("use count of handler: %ld\n", remove_list[i].use_count());
+        acceptor->remove_client_address(remove_list[i]);
     }
-    // printf("use count of handler: %ld\n", remove_list_tmp[i].use_count());
-    remove_list_tmp.clear();
+    
+    remove_list.clear();
     printf("delete handler number: %d\n", num);
 }
 
 
 // 将要销毁的Handler放到销毁队列中
 void Reactor::add_remove_list(std::shared_ptr<Handler> handler) {
-    remove_list_tmp.push_back(handler);
+    remove_list.push_back(handler);
 }
 
 void Reactor::add_timer() {
@@ -108,5 +102,5 @@ void Reactor::accept_conn_cb(struct evconnlistener* listener,
                              evutil_socket_t fd, struct sockaddr* address, int socklen,
                              void* ctx) {
     Reactor* reactor = (Reactor*)ctx;
-    reactor->acceptor_tmp->accept_conn(listener, fd, address, socklen, reactor->self);
+    reactor->acceptor->accept_conn(listener, fd, address, socklen, reactor->self);
 }

@@ -17,15 +17,12 @@ public:
     void accept_conn(struct evconnlistener* listener,
                      evutil_socket_t fd, struct sockaddr* address, int socklen,
                      std::shared_ptr<Reactor> reactor);
-    // void add_client_address(Handler* handler, sockaddr_in* addr);
-    void add_client_address(std::shared_ptr<Handler> handler, std::shared_ptr<sockaddr_in> addr);
-    // void remove_client_address(Handler* handler);
+    void add_client_address(std::shared_ptr<Handler> handler, sockaddr_in addr);
     void remove_client_address(std::shared_ptr<Handler> handler);
 
 
 private:
-    // std::unordered_map <Handler*, sockaddr_in> client_addres;
-    std::unordered_map <std::shared_ptr<Handler>, std::shared_ptr<sockaddr_in>> client_address_tmp;
+    std::unordered_map <std::shared_ptr<Handler>, sockaddr_in> client_address;
 
     unsigned int count;
 };

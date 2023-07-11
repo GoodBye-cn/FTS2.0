@@ -14,7 +14,7 @@ void Worker::set_buff(char* buff, int buffer_size) {
 }
 
 void Worker::set_handler(std::shared_ptr<Handler> handler) {
-    this->handler_tmp = handler;
+    this->handler = handler;
 }
 
 
@@ -35,12 +35,12 @@ void Worker::work() {
         rsp.file_size = file_stat.st_size;
         sprintf(rsp.msg, "this is file");
         rsp.length = sizeof(int) + sizeof(int) + strlen(rsp.msg);
-        handler_tmp->set_file_stat(file_stat.st_size);
+        handler->set_file_stat(file_stat.st_size);
     }
-    handler_tmp->write_mutex.lock();
-    handler_tmp->set_filefd(filefd);
-    handler_tmp->init_write_buff(rsp.length);
-    handler_tmp->set_write_buff_data((char*)&rsp, rsp.length);
-    handler_tmp->write_mutex.unlock();
-    handler_tmp->active_write_event();
+    handler->write_mutex.lock();
+    handler->set_filefd(filefd);
+    handler->init_write_buff(rsp.length);
+    handler->set_write_buff_data((char*)&rsp, rsp.length);
+    handler->write_mutex.unlock();
+    handler->active_write_event();
 }

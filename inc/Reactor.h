@@ -47,12 +47,8 @@ private:
     evconnlistener* listener;
     event* sigquit_event;
     event* timer_event;
-    // std::vector<Handler*> remove_list;
-    std::vector<std::shared_ptr<Handler>> remove_list_tmp;
-    // std::set<Handler*> handlers;
-    // std::set<std::shared_ptr<Handler>> handlers_tmp;
-    // Acceptor* acceptor;
-    std::unique_ptr<Acceptor> acceptor_tmp;
+    std::vector<std::shared_ptr<Handler>> remove_list;
+    std::unique_ptr<Acceptor> acceptor;
     Threadpool<Worker>* threadpool;
     timeval time_slot;
     int clear_client_data_slot;

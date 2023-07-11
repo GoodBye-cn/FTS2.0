@@ -33,7 +33,7 @@ private:
     char* buffer;
     int buffer_size;
     struct stat file_stat;
-    std::shared_ptr<Handler> handler_tmp;
+    std::shared_ptr<Handler> handler;
     FileResponse rsp;
     FileRequest req;
 };

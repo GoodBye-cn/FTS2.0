@@ -56,10 +56,8 @@ private:
     int read_buff_index, read_buff_size;
     int write_buff_index, write_buff_size, file_size, file_offset;
     bool working, requesting;
-    // Worker* worker;
-    std::shared_ptr<Worker> worker_tmp;
-    // Reactor* reactor;
-    std::shared_ptr<Reactor> reactor_tmp;
+    std::shared_ptr<Worker> worker;
+    std::shared_ptr<Reactor> reactor;
     std::shared_ptr<Handler> self;
     int count = 0;
 public:

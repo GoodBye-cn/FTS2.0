@@ -41,9 +41,9 @@ Handler::~Handler() {
 
 void Handler::init_worker() {
     // 先set_self 后创建worker，否则self的指向不明
-    this->worker_tmp = std::make_shared<Worker>();
-    worker_tmp->set_handler(self);
-    worker_tmp->set_buff(this->read_buff, Handler::READ_BUFF_LEN);
+    this->worker = std::make_shared<Worker>();
+    worker->set_handler(self);
+    worker->set_buff(this->read_buff, Handler::READ_BUFF_LEN);
 }
 
 
@@ -58,17 +58,17 @@ void Handler::set_sockfd(int fd) {
 void Handler::set_self(std::shared_ptr<Handler> self) {
     this->self = self;
     // 如果worker为空
-    if (!worker_tmp) {
+    if (!worker) {
         init_worker();
     }
     else {
-        worker_tmp->set_handler(self);
+        worker->set_handler(self);
     }
 }
 
 
 void Handler::set_reactor(std::shared_ptr<Reactor> reactor) {
-    this->reactor_tmp = reactor;
+    this->reactor = reactor;
 }
 
 
@@ -95,7 +95,7 @@ void Handler::destory() {
         close(filefd);
     }
     // 添加到删除队列
-    reactor_tmp->add_remove_list(self);
+    reactor->add_remove_list(self);
     printf("add handler to remove list and remove read write event\n");
 }
 
@@ -206,7 +206,7 @@ void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
             memcpy(&value, buff, sizeof(int));
             if (handler->read_buff_index == value) {
                 // 开始处理任务
-                handler->reactor_tmp->get_threadpool()->append(handler->worker_tmp.get());
+                handler->reactor->get_threadpool()->append(handler->worker.get());
                 // 测试单线程的时候使用
                 // handler->worker->work();
                 handler->remove_read_event();
