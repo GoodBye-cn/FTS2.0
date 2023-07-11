@@ -1,3 +1,4 @@
+#include "Worker.h"
 #include "Handler.h"
 #include "Reactor.h"
 #include "MessageFormat.h"
@@ -19,12 +20,6 @@ Handler::Handler() {
     this->requesting = false;
     this->filefd = -1;
     this->write_buff = NULL;
-    // this->worker = new Worker();
-    this->worker_tmp = std::make_shared<Worker>();
-    // worker->set_handler(this);
-    worker_tmp->set_handler(this);
-    // worker->set_buff(this->read_buff, Handler::READ_BUFF_LEN);
-    worker_tmp->set_buff(this->read_buff, Handler::READ_BUFF_LEN);
     gettimeofday(&death_time, NULL);
     reset_death_time();
 }
@@ -42,10 +37,15 @@ Handler::~Handler() {
         event_free(timeout_event);
         timeout_event = NULL;
     }
-    // if (worker != NULL) {
-    //     delete worker;
-    // }
 }
+
+void Handler::init_worker() {
+    // 先set_self 后创建worker，否则self的指向不明
+    this->worker_tmp = std::make_shared<Worker>();
+    worker_tmp->set_handler(self);
+    worker_tmp->set_buff(this->read_buff, Handler::READ_BUFF_LEN);
+}
+
 
 void Handler::set_base(event_base* base) {
     this->base = base;
@@ -55,9 +55,17 @@ void Handler::set_sockfd(int fd) {
     this->sockfd = fd;
 }
 
-// void Handler::set_reactor(Reactor* reactor) {
-//     this->reactor = reactor;
-// }
+void Handler::set_self(std::shared_ptr<Handler> self) {
+    this->self = self;
+    // 如果worker为空
+    if (!worker_tmp) {
+        init_worker();
+    }
+    else {
+        worker_tmp->set_handler(self);
+    }
+}
+
 
 void Handler::set_reactor(std::shared_ptr<Reactor> reactor) {
     this->reactor_tmp = reactor;
@@ -87,7 +95,7 @@ void Handler::destory() {
         close(filefd);
     }
     // 添加到删除队列
-    reactor_tmp->add_remove_list(std::make_shared<Handler>(this));
+    reactor_tmp->add_remove_list(self);
     printf("add handler to remove list and remove read write event\n");
 }
 

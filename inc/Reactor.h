@@ -21,15 +21,12 @@ public:
     Reactor();
     ~Reactor();
 
+    void set_self(std::shared_ptr<Reactor> self);
     // void add_handler(Handler* handler);
-    void add_handler(std::shared_ptr<Handler> handler);
+    // void add_handler(std::shared_ptr<Handler> handler);
     void remove_handler();
-    // void remove_handler(Handler* handler);
-    void remove_handler(std::shared_ptr<Handler> handler);
-
     void start();
     void add_timer();
-    // void add_remove_list(Handler* handler);
     void add_remove_list(std::shared_ptr<Handler> handler);
     void set_threadpool(Threadpool<Worker>* tp);
     Threadpool<Worker>* get_threadpool();
@@ -53,7 +50,7 @@ private:
     // std::vector<Handler*> remove_list;
     std::vector<std::shared_ptr<Handler>> remove_list_tmp;
     // std::set<Handler*> handlers;
-    std::set<std::shared_ptr<Handler>> handlers_tmp;
+    // std::set<std::shared_ptr<Handler>> handlers_tmp;
     // Acceptor* acceptor;
     std::unique_ptr<Acceptor> acceptor_tmp;
     Threadpool<Worker>* threadpool;

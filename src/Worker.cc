@@ -13,10 +13,6 @@ void Worker::set_buff(char* buff, int buffer_size) {
     this->buffer_size = buffer_size;
 }
 
-// void Worker::set_handler(Handler* handler) {
-//     this->handler = handler;
-// }
-
 void Worker::set_handler(std::shared_ptr<Handler> handler) {
     this->handler_tmp = handler;
 }

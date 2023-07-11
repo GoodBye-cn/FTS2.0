@@ -26,7 +26,6 @@ public:
     ~Worker();
 
     void set_buff(char* buff, int buffer_size);
-    // void set_handler(Handler* handler);
     void set_handler(std::shared_ptr<Handler> handler);
     void work();
 
@@ -34,7 +33,6 @@ private:
     char* buffer;
     int buffer_size;
     struct stat file_stat;
-    // Handler* handler;
     std::shared_ptr<Handler> handler_tmp;
     FileResponse rsp;
     FileRequest req;

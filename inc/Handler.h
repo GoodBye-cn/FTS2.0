@@ -15,7 +15,7 @@ public:
 
     void set_base(event_base* base);
     void set_sockfd(int fd);
-    // void set_reactor(Reactor* reactor);
+    void set_self(std::shared_ptr<Handler> self);
     void set_reactor(std::shared_ptr<Reactor> reactor);
     void init();
     void destory();
@@ -40,6 +40,8 @@ private:
     static const int READ_BUFF_LEN = 1024;
     static const int WRITE_BUFF_LEN = 1024;
 
+    void init_worker();
+
 private:
     int sockfd;
     event_base* base;
@@ -58,6 +60,7 @@ private:
     std::shared_ptr<Worker> worker_tmp;
     // Reactor* reactor;
     std::shared_ptr<Reactor> reactor_tmp;
+    std::shared_ptr<Handler> self;
     int count = 0;
 public:
     Mutex write_mutex;

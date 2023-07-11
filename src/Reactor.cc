@@ -16,7 +16,6 @@ Reactor::Reactor() {
     this->base = event_base_new();
     // acceptor = new Acceptor();
     acceptor_tmp = std::make_unique<Acceptor>();
-    self = std::shared_ptr<Reactor>(this);
 }
 
 Reactor::~Reactor() {
@@ -24,6 +23,10 @@ Reactor::~Reactor() {
     event_base_free(base);
     evconnlistener_free(listener);
     // delete acceptor;
+}
+
+void Reactor::set_self(std::shared_ptr<Reactor> self) {
+    this->self = self;
 }
 
 void Reactor::start() {
@@ -45,13 +48,10 @@ void Reactor::start() {
     event_base_dispatch(base);
 }
 
-// void Reactor::add_handler(Handler* handler) {
-//     handlers.insert(handler);
-// }
 
-void Reactor::add_handler(std::shared_ptr<Handler> handler) {
-    handlers_tmp.insert(handler);
-}
+// void Reactor::add_handler(std::shared_ptr<Handler> handler) {
+//     handlers_tmp.insert(handler);
+// }
 
 
 void Reactor::remove_handler() {
@@ -60,28 +60,16 @@ void Reactor::remove_handler() {
         return;
     }
     for (int i = 0; i < remove_list_tmp.size(); i++) {
-        handlers_tmp.erase(remove_list_tmp[i]);
-        // delete remove_list[i];
+        printf("use count of handler: %ld\n", remove_list_tmp[i].use_count());
         acceptor_tmp->remove_client_address(remove_list_tmp[i]);
     }
-
+    // printf("use count of handler: %ld\n", remove_list_tmp[i].use_count());
     remove_list_tmp.clear();
     printf("delete handler number: %d\n", num);
 }
 
-// void Reactor::remove_handler(Handler* handler) {
-//     handlers.erase(handler);
-// }
 
 // 将要销毁的Handler放到销毁队列中
-void Reactor::remove_handler(std::shared_ptr<Handler> handler) {
-    handlers_tmp.erase(handler);
-}
-
-// void Reactor::add_remove_list(Handler* handler) {
-//     remove_list.push_back(handler);
-// }
-
 void Reactor::add_remove_list(std::shared_ptr<Handler> handler) {
     remove_list_tmp.push_back(handler);
 }
