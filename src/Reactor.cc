@@ -1,6 +1,8 @@
 #include "Reactor.h"
 #include "Acceptor.h"
 #include "Worker.h"
+
+
 #include <signal.h>
 
 Reactor::Reactor() {
@@ -12,14 +14,16 @@ Reactor::Reactor() {
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = inet_addr("0.0.0.0");
     this->base = event_base_new();
-    acceptor = new Acceptor();
+    // acceptor = new Acceptor();
+    acceptor_tmp = std::make_unique<Acceptor>();
+    self = std::shared_ptr<Reactor>(this);
 }
 
 Reactor::~Reactor() {
     event_free(sigquit_event);
     event_base_free(base);
     evconnlistener_free(listener);
-    delete acceptor;
+    // delete acceptor;
 }
 
 void Reactor::start() {
@@ -41,31 +45,45 @@ void Reactor::start() {
     event_base_dispatch(base);
 }
 
-void Reactor::add_handler(Handler* handler) {
-    handlers.insert(handler);
+// void Reactor::add_handler(Handler* handler) {
+//     handlers.insert(handler);
+// }
+
+void Reactor::add_handler(std::shared_ptr<Handler> handler) {
+    handlers_tmp.insert(handler);
 }
 
+
 void Reactor::remove_handler() {
-    int num = remove_list.size();
-    if (remove_list.size() == 0) {
+    int num = remove_list_tmp.size();
+    if (remove_list_tmp.size() == 0) {
         return;
     }
-    for (int i = 0; i < remove_list.size(); i++) {
-        handlers.erase(remove_list[i]);
-        acceptor->remove_client_address(remove_list[i]);
+    for (int i = 0; i < remove_list_tmp.size(); i++) {
+        handlers_tmp.erase(remove_list_tmp[i]);
+        // delete remove_list[i];
+        acceptor_tmp->remove_client_address(remove_list_tmp[i]);
     }
 
-    remove_list.clear();
+    remove_list_tmp.clear();
     printf("delete handler number: %d\n", num);
 }
 
-void Reactor::remove_handler(Handler* handler) {
-    handlers.erase(handler);
-}
+// void Reactor::remove_handler(Handler* handler) {
+//     handlers.erase(handler);
+// }
 
 // 将要销毁的Handler放到销毁队列中
-void Reactor::add_remove_list(Handler* handler) {
-    remove_list.push_back(handler);
+void Reactor::remove_handler(std::shared_ptr<Handler> handler) {
+    handlers_tmp.erase(handler);
+}
+
+// void Reactor::add_remove_list(Handler* handler) {
+//     remove_list.push_back(handler);
+// }
+
+void Reactor::add_remove_list(std::shared_ptr<Handler> handler) {
+    remove_list_tmp.push_back(handler);
 }
 
 void Reactor::add_timer() {
@@ -99,8 +117,8 @@ void Reactor::timeout_cb(evutil_socket_t sig, short what, void* ctx) {
  * @details 通过Reactor指针，将参数传递给Acceptor的连接处理函数中
  */
 void Reactor::accept_conn_cb(struct evconnlistener* listener,
-    evutil_socket_t fd, struct sockaddr* address, int socklen,
-    void* ctx) {
+                             evutil_socket_t fd, struct sockaddr* address, int socklen,
+                             void* ctx) {
     Reactor* reactor = (Reactor*)ctx;
-    reactor->acceptor->accept_conn(listener, fd, address, socklen, ctx);
+    reactor->acceptor_tmp->accept_conn(listener, fd, address, socklen, reactor->self);
 }

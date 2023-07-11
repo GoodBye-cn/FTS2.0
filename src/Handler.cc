@@ -19,9 +19,12 @@ Handler::Handler() {
     this->requesting = false;
     this->filefd = -1;
     this->write_buff = NULL;
-    this->worker = new Worker();
-    worker->set_handler(this);
-    worker->set_buff(this->read_buff, Handler::READ_BUFF_LEN);
+    // this->worker = new Worker();
+    this->worker_tmp = std::make_shared<Worker>();
+    // worker->set_handler(this);
+    worker_tmp->set_handler(this);
+    // worker->set_buff(this->read_buff, Handler::READ_BUFF_LEN);
+    worker_tmp->set_buff(this->read_buff, Handler::READ_BUFF_LEN);
     gettimeofday(&death_time, NULL);
     reset_death_time();
 }
@@ -39,9 +42,9 @@ Handler::~Handler() {
         event_free(timeout_event);
         timeout_event = NULL;
     }
-    if (worker != NULL) {
-        delete worker;
-    }
+    // if (worker != NULL) {
+    //     delete worker;
+    // }
 }
 
 void Handler::set_base(event_base* base) {
@@ -52,9 +55,14 @@ void Handler::set_sockfd(int fd) {
     this->sockfd = fd;
 }
 
-void Handler::set_reactor(Reactor* reactor) {
-    this->reactor = reactor;
+// void Handler::set_reactor(Reactor* reactor) {
+//     this->reactor = reactor;
+// }
+
+void Handler::set_reactor(std::shared_ptr<Reactor> reactor) {
+    this->reactor_tmp = reactor;
 }
+
 
 void Handler::init() {
     read_event = event_new(base, sockfd, EV_READ | EV_PERSIST, read_cb, this);
@@ -79,7 +87,7 @@ void Handler::destory() {
         close(filefd);
     }
     // 添加到删除队列
-    reactor->add_remove_list(this);
+    reactor_tmp->add_remove_list(std::make_shared<Handler>(this));
     printf("add handler to remove list and remove read write event\n");
 }
 
@@ -190,7 +198,7 @@ void Handler::read_cb(evutil_socket_t fd, short what, void* arg) {
             memcpy(&value, buff, sizeof(int));
             if (handler->read_buff_index == value) {
                 // 开始处理任务
-                handler->reactor->get_threadpool()->append(handler->worker);
+                handler->reactor_tmp->get_threadpool()->append(handler->worker_tmp.get());
                 // 测试单线程的时候使用
                 // handler->worker->work();
                 handler->remove_read_event();

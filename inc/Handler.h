@@ -2,6 +2,7 @@
 #define _HANDLER_H
 
 #include <event2/event.h>
+#include <memory>
 
 #include "Worker.h"
 
@@ -14,7 +15,8 @@ public:
 
     void set_base(event_base* base);
     void set_sockfd(int fd);
-    void set_reactor(Reactor* reactor);
+    // void set_reactor(Reactor* reactor);
+    void set_reactor(std::shared_ptr<Reactor> reactor);
     void init();
     void destory();
     bool get_state();
@@ -52,8 +54,10 @@ private:
     int read_buff_index, read_buff_size;
     int write_buff_index, write_buff_size, file_size, file_offset;
     bool working, requesting;
-    Worker* worker;
-    Reactor* reactor;
+    // Worker* worker;
+    std::shared_ptr<Worker> worker_tmp;
+    // Reactor* reactor;
+    std::shared_ptr<Reactor> reactor_tmp;
     int count = 0;
 public:
     Mutex write_mutex;
