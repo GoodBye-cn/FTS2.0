@@ -23,7 +23,6 @@ public:
 
 private:
     std::unordered_map <std::shared_ptr<Handler>, sockaddr_in> client_address;
-
     unsigned int count;
 };
 

@@ -14,7 +14,6 @@ Reactor::Reactor() {
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = inet_addr("0.0.0.0");
     this->base = event_base_new();
-    // acceptor = new Acceptor();
     acceptor = std::make_unique<Acceptor>();
 }
 
